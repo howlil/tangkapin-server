@@ -21,7 +21,7 @@ def start_real_time_detection():
     """
     try:
         logger.info("Starting real-time detection...")
-        real_time_detection(YOLO_PATH, FAST_RCNN_PATH, OWNER_ID, CCTV_IP)
+        real_time_detection(YOLO_PATH, FAST_RCNN_PATH, CCTV_IP)
     except Exception as e:
         logger.error(f"Error in real-time detection: {e}")
 

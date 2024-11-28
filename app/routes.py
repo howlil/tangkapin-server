@@ -5,8 +5,6 @@ from app.middlewares.auth_middleware import authenticate, authorize
 main_bp = Blueprint('main', __name__)
 
 
-
-
 @main_bp.route('/', methods=['GET'])
 def home():
     return {
@@ -14,7 +12,7 @@ def home():
     }
 
 
-@main_bp.route('/api/v1//login', methods=['POST'])
+@main_bp.route('/api/v1/login', methods=['POST'])
 def login():
     data = request.get_json()
     return login_user(data)
