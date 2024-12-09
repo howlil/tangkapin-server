@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from functools import wraps
-from app.utils.jwt import decode_jwt_token
+from app.helpers.jwt import decode_jwt_token
 
 def authenticate(f):
     

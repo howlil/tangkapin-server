@@ -1,13 +1,13 @@
 from app import create_app, db
-from app.models import User, RoleEnum,CCTV
+from app.models import User, RoleEnum, CCTV
 from werkzeug.security import generate_password_hash
 import uuid
 
 def seed_users():
     with create_app().app_context():
         # Hash passwords
-        owner_password = generate_password_hash("@hallodek")
-        police_password = generate_password_hash("@hallodek")
+        owner_password = generate_password_hash("@Test123")
+        police_password = generate_password_hash("@Test123")
 
         # Create Owner user
         owner = User(
@@ -18,6 +18,7 @@ def seed_users():
             lang="-0.9261958",
             lat="100.43425",
             role=RoleEnum.OWNER,
+            fcm_token="dummy_fcm_token_owner_12345",  # Tambahkan FCM token
             created_at=db.func.now(),
         )
 
@@ -30,6 +31,7 @@ def seed_users():
             lang="-0.9299757",
             lat="100.4255762,20.24",
             role=RoleEnum.POLICE,
+            fcm_token="dummy_fcm_token_police_67890",  # Tambahkan FCM token
             created_at=db.func.now(),
         )
 
@@ -60,7 +62,7 @@ def seed_cctvs():
                 "nama_cctv": "CCTV Minimarket 1",
             },
             {
-                "cctv_ip": "https://192.168.1.8:8080",
+                "cctv_ip": "https://192.168.1.190:8080",
                 "nama_cctv": "CCTV Minimarket 2",
             },
         ]

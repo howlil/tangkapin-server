@@ -10,5 +10,3 @@ app/controllers/__pycache__/
 app/routes/__pycache__/
 migrations
 __pycache__
-app/models
-app/keys

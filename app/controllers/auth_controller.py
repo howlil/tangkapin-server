@@ -1,14 +1,15 @@
 from flask import jsonify
 from werkzeug.security import check_password_hash
 from app.models import User
-from app.utils.jwt import create_jwt_token
+from app.helpers.jwt import create_jwt_token
 
 
 def login_user(data):
-    
     try:
         email = data.get('email')
         password = data.get('password')
+        fcm_token = data.get('fcm_token')  # Tambahkan untuk menangkap fcm_token
+
         if not email or not password:
             return jsonify({
                 "error": True,
@@ -23,6 +24,11 @@ def login_user(data):
                 "message": "Invalid email or password.",
                 "data": None
             }), 401
+
+        # Simpan atau perbarui FCM token
+        if fcm_token:
+            user.fcm_token = fcm_token
+            db.session.commit()
 
         token = create_jwt_token(str(user.id), user.role.name)
 

@@ -25,6 +25,7 @@ class User(db.Model):
     address = db.Column(db.String(255))
     lang = db.Column(db.String(50))
     lat = db.Column(db.String(50))
+    fcm_token = db.Column(db.String, nullable=True) 
     role = db.Column(db.Enum(RoleEnum), nullable=False) 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow, default=datetime.utcnow)
@@ -86,7 +87,7 @@ class CCTV(db.Model):
     
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = db.Column(UUID(as_uuid=True), db.ForeignKey("user.id"), nullable=False)
-    cctv_ip = db.Column(db.String, unique=True, nullable=False)
+    cctv_ip = db.Column(db.String, unique=True, nullable=False, index=True)  # Tambahkan indeks
     nama_cctv = db.Column(db.String, unique=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow, default=datetime.utcnow)
@@ -100,7 +101,7 @@ class Images(db.Model):
     __tablename__ = "images"
     
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name_image = db.Column(db.String, nullable=False)
+    name_image = db.Column(db.String, nullable=False, index=True) 
     predict_id = db.Column(UUID(as_uuid=True), db.ForeignKey("predicts.id"), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow, default=datetime.utcnow)
