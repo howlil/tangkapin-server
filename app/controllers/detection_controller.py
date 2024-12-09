@@ -13,6 +13,8 @@ from sqlalchemy.exc import SQLAlchemyError
 import math
 from sqlalchemy import Float
 from datetime import datetime
+import json
+
 
 
 logger = setup_logger("detection")
@@ -116,9 +118,21 @@ def create_report(owner_id, array_image, description):
             ]
         }
         produce_event("knife-detection-notifications", key="alert", value=json.dumps({
-            "user_id": owner.id,
-            "report": report
+            "user_id": str(owner.id), 
+            "report": {
+                "report_id": str(predict.id), 
+                "owner_id": str(owner.id), 
+                "address": str(owner.address),
+                "description": description,
+                "images": array_image,
+                "created_at": datetime.now().isoformat(),
+                "police_in_radius": [
+                    {"id": str(police.id), "name": police.name, "distance_km": round(police.distance, 2)}
+                    for police in nearby_police
+                ]
+            }
         }))
+
         logger.info("Report sent to Kafka successfully.")
 
         logger.info("Report created successfully.")

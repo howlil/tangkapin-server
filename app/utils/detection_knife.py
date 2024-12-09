@@ -154,24 +154,26 @@ def real_time_detection(model_path, camera_source):
                 # Detect and draw results
                 frame, images_captured = draw_detections(frame, results, owner_id)
 
-                if len(all_images_captured) < 5:
-                    for image_url in images_captured:
-                        if len(all_images_captured) < 5:
-                            all_images_captured.append(image_url)
-                            logger.info(f"Image URL added: {image_url}")
-                        else:
-                            break
+                # Add captured images to the list
+                for image_url in images_captured:
+                    if len(all_images_captured) < 5:
+                        all_images_captured.append(image_url)
+                        logger.info(f"Image URL added: {image_url}")
+                    else:
+                        break
 
+                # Stop detection after 5 images
                 if len(all_images_captured) >= 5:
                     logger.info("5 images captured. Creating report...")
                     with app.app_context():
-                        create_report(owner_id, all_images_captured[:5], "report success")
+                        create_report(owner_id, all_images_captured[:5], "Detection report generated.")
                     logger.info("Report created successfully.")
-                    is_detection_active = False
+                    is_detection_active = False  # Stop detection
                     break
 
-            cv2.imshow('Real-time Detection', frame)
+            # Optional: press 'q' to quit
             if cv2.waitKey(1) & 0xFF == ord('q'):
+                logger.info("Detection stopped manually by user.")
                 break
 
     except Exception as e:
@@ -181,3 +183,4 @@ def real_time_detection(model_path, camera_source):
         cap.release()
         cv2.destroyAllWindows()
         is_detection_active = False
+        logger.info("Detection stopped, resources released.")
