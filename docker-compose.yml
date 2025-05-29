@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  express-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src
+      - ./uploads:/app/uploads
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  ml-detection:
+    build:
+      context: .
+      dockerfile: Dockerfile.ml
+    volumes:
+      - ./ml:/app/ml
+      - ./ml/evidence:/app/ml/evidence
+    environment:
+      - API_ENDPOINT=http://express-api:3000/api/v1/detection
+      - MODEL_PATH=/app/ml/model/best.pt
+      - CAMERA_URLS=${CAMERA_URLS}
+    depends_on:
+      - express-api
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
