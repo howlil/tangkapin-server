@@ -4,6 +4,7 @@ const authMiddleware = require('../middleware/auth.middleware');
 const validationMiddleware = require('../middleware/validation.middleware');
 const cctvValidation = require('../validation/cctv.validation');
 
+
 const router = Router();
 
 // Apply authentication middleware to all routes

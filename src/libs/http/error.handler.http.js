@@ -1,98 +1,167 @@
-const { Prisma } = require('@prisma/client');
 const { logger } = require('../configs/logger.config');
+const { Prisma } = require('@prisma/client');
+const {
+  UnauthorizedError,
+  ForbiddenError,
+  NotFoundError,
+  ConflictError,
+  BadRequestError,
+  ValidationError,
+  HttpError
+} = require('./errors.http');
 
-class HttpError extends Error {
-    constructor(message, statusCode) {
-        super(message);
-        this.statusCode = statusCode;
+class ErrorHandler {
+  static asyncHandler(fn) {
+    return async (req, res, next) => {
+      try {
+        await fn(req, res, next);
+      } catch (error) {
+        next(error);
+      }
+    };
+  }
+
+  static notFoundHandler(req, res, next) {
+    const error = new NotFoundError(`Route tidak ditemukan: ${req.originalUrl}`);
+    next(error);
+  }
+
+  static errorHandler(error, req, res, next) {
+    logger.error(`Error processing ${req.method} ${req.originalUrl}:`, error);
+
+    // Handle generic Error objects that might not be instances of our custom errors
+    if (error instanceof Error && !(error instanceof HttpError)) {
+      return res.status(500).json({
+        success: false,
+        message: error.message || 'Internal server error',
+        errors: process.env.NODE_ENV === 'development' ? [{ message: error.message }] : null
+      });
     }
-}
 
-class BadRequestError extends HttpError {
-    constructor(message = 'Bad Request') {
-        super(message, 400);
+    // Handle specific error types
+    if (error instanceof UnauthorizedError) {
+      return res.status(401).json({
+        success: false,
+        message: error.message || 'Unauthorized access',
+        errors: error.data || null
+      });
     }
-}
 
-class UnauthorizedError extends HttpError {
-    constructor(message = 'Unauthorized') {
-        super(message, 401);
+    if (error instanceof ForbiddenError) {
+      return res.status(403).json({
+        success: false,
+        message: error.message || 'Access forbidden',
+        errors: error.data || null
+      });
     }
-}
 
-class ForbiddenError extends HttpError {
-    constructor(message = 'Forbidden') {
-        super(message, 403);
+    if (error instanceof NotFoundError) {
+      return res.status(404).json({
+        success: false,
+        message: error.message || 'Resource not found',
+        errors: error.data || null
+      });
     }
-}
 
-class NotFoundError extends HttpError {
-    constructor(message = 'Not Found') {
-        super(message, 404);
+    if (error instanceof ConflictError) {
+      return res.status(409).json({
+        success: false,
+        message: error.message || 'Resource conflict',
+        errors: error.data || null
+      });
     }
-}
 
-class ConflictError extends HttpError {
-    constructor(message = 'Conflict') {
-        super(message, 409);
+    if (error instanceof BadRequestError) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || 'Bad request',
+        errors: error.data || null
+      });
     }
-}
 
-const handlePrismaError = (error) => {
+    if (error instanceof ValidationError) {
+      return res.status(422).json({
+        success: false,
+        message: error.message || 'Validation failed',
+        errors: error.data || null
+      });
+    }
+
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        switch (error.code) {
-            case 'P2002': return new ConflictError('Data sudah ada dalam sistem');
-            case 'P2014': return new BadRequestError('ID tidak valid');
-            case 'P2003': return new BadRequestError('Data terkait tidak ditemukan');
-            case 'P2025': return new NotFoundError('Data tidak ditemukan');
-            default: return new BadRequestError('Terjadi kesalahan pada database');
-        }
+      return res.status(400).json({
+        success: false,
+        message: 'Database operation failed',
+        errors: [{
+          code: error.code,
+          message: this.getPrismaErrorMessage(error)
+        }]
+      });
     }
 
     if (error instanceof Prisma.PrismaClientValidationError) {
-        return new BadRequestError('Data yang diberikan tidak valid');
+      // Extract field name from error message if possible
+      const fieldMatch = error.message.match(/Unknown field `([^`]+)`/);
+      const modelMatch = error.message.match(/model `([^`]+)`/);
+
+      const errorMessage = fieldMatch && modelMatch
+        ? `Field '${fieldMatch[1]}' tidak tersedia pada model ${modelMatch[1]}`
+        : 'Invalid data provided';
+
+      return res.status(400).json({
+        success: false,
+        message: errorMessage,
+        errors: [{
+          message: process.env.NODE_ENV === 'development' ? error.message : errorMessage
+        }]
+      });
     }
 
-    if (error instanceof Prisma.PrismaClientInitializationError) {
-        logger.error('Database initialization error:', error);
-        return new HttpError('Terjadi kesalahan pada koneksi database', 500);
+    // Handle validation errors from Joi
+    if (error.isJoi) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: error.details.map(detail => ({
+          field: detail.path[0],
+          message: detail.message
+        }))
+      });
     }
 
-    return error;
-};
-
-const errorHandler = (err, req, res, next) => {
-    logger.error(`Error processing ${req.method} ${req.path}:`, err);
-
-    let error = err;
-
-    // Handle Prisma Errors
-    if (err instanceof Prisma.PrismaClientError) {
-        error = handlePrismaError(err);
-    }
-
-    // Handle known HTTP errors
-    if (error instanceof HttpError) {
-        return res.status(error.statusCode).json({
-            success: false,
-            message: error.message
-        });
+    // Handle multer errors
+    if (error && error.name === 'MulterError') {
+      return res.status(400).json({
+        success: false,
+        message: 'File upload error',
+        errors: [{
+          field: error.field,
+          message: error.message
+        }]
+      });
     }
 
     // Handle unknown errors
     return res.status(500).json({
-        success: false,
-        message: 'Internal Server Error'
+      success: false,
+      message: 'Internal server error',
+      errors: process.env.NODE_ENV === 'development' ? [{ message: error.message }] : null
     });
-};
+  }
 
-module.exports = {
-    errorHandler,
-    handlePrismaError,
-    HttpError,
-    BadRequestError,
-    UnauthorizedError,
-    ForbiddenError,
-    NotFoundError,
-    ConflictError
-}; 
+  static getPrismaErrorMessage(error) {
+    switch (error.code) {
+      case 'P2002':
+        return `Data dengan ${error.meta?.target?.join(', ')} sudah ada`;
+      case 'P2014':
+        return 'ID yang diberikan tidak valid';
+      case 'P2003':
+        return 'Data terkait tidak ditemukan';
+      case 'P2025':
+        return 'Data tidak ditemukan';
+      default:
+        return 'Terjadi kesalahan pada database';
+    }
+  }
+}
+
+module.exports = ErrorHandler;

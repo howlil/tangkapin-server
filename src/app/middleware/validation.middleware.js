@@ -1,4 +1,4 @@
-const { BadRequestError, ValidationError } = require('../../lib/http/errors.http');
+const { BadRequestError, ValidationError } = require('../../libs/http/errors.http');
 
 class ValidationMiddleware {
 

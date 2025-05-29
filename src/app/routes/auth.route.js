@@ -6,22 +6,22 @@ const authValidation = require('../validation/auth.validation');
 
 const router = Router();
 
-router.post('/v1/login',
+router.post('/auth/login',
     validationMiddleware.validateBody(authValidation.login()),
     authController.login
 );
 
-router.post('/v1/register',
+router.post('/auth/register',
     validationMiddleware.validateBody(authValidation.register()),
     authController.register
 );
 
-router.post('/v1/logout',
+router.post('/auth/logout',
     authMiddleware.authenticate,
     authController.logout
 );
 
-router.get('/v1/me',
+router.get('/auth/me',
     authMiddleware.authenticate,
     authController.getCurrentUser
 );
