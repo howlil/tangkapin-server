@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-Weapon Detection System - Main Entry Point
------------------------------------------
-This script initializes and runs the weapon detection system.
-"""
 
 import os
 import sys

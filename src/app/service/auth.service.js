@@ -1,5 +1,5 @@
 const { prisma } = require('../../libs/configs/prisma.config');
-const { BadRequestError, UnauthorizedError, NotFoundError, handlePrismaError } = require('../../libs/http/error.handler.http');
+const { HttpError, BadRequestError, UnauthorizedError, NotFoundError } = require('../../libs/http/errors.http');
 const TokenUtils = require('../../libs/utils/token.utils');
 const PasswordUtils = require('../../libs/utils/password.utils');
 
@@ -78,7 +78,10 @@ class AuthService {
                 };
             } catch (officerError) {
                 // If both fail, return the original error
-                throw handlePrismaError(error);
+                if (error instanceof HttpError) {
+                    throw error;
+                }
+                throw new BadRequestError('Login failed');
             }
         }
     }
@@ -104,14 +107,22 @@ class AuthService {
                 email: user.email
             };
         } catch (error) {
-            throw handlePrismaError(error);
+            if (error instanceof HttpError) {
+                throw error;
+            }
+            throw new BadRequestError('Registration failed');
         }
     }
 
     async getCurrentUser(userId) {
         try {
+            // Check if userId is defined
+            if (!userId) {
+                throw new NotFoundError('User ID tidak valid');
+            }
+
             // Try to find the user in the Owner table first
-            const user = await prisma.Owner.findUnique({
+            const user = await prisma.owner.findUnique({  // Note: change Owner to owner (lowercase)
                 where: { id: userId },
                 select: {
                     id: true,
@@ -132,7 +143,7 @@ class AuthService {
             }
 
             // If not found in Owner, try Officer
-            const officer = await prisma.Officer.findUnique({
+            const officer = await prisma.officer.findUnique({  // Note: change Officer to officer (lowercase)
                 where: { id: userId },
                 select: {
                     id: true,
@@ -154,7 +165,7 @@ class AuthService {
             }
 
             // If not found in Officer, try Police
-            const police = await prisma.Police.findUnique({
+            const police = await prisma.police.findUnique({  // Note: change Police to police (lowercase)
                 where: { id: userId },
                 select: {
                     id: true,
@@ -177,15 +188,20 @@ class AuthService {
 
             throw new NotFoundError('User tidak ditemukan');
         } catch (error) {
-            throw handlePrismaError(error);
+            if (error instanceof HttpError) {
+                throw error;
+            }
+            throw new BadRequestError('Failed to get user data');
         }
     }
-
     async logout(token) {
         try {
             return await TokenUtils.revokeToken(token);
         } catch (error) {
-            throw handlePrismaError(error);
+            if (error instanceof HttpError) {
+                throw error;
+            }
+            throw new BadRequestError('Logout failed');
         }
     }
 }

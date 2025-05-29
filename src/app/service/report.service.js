@@ -1,5 +1,6 @@
 const { prisma } = require('../../libs/configs/prisma.config');
-const { NotFoundError, handlePrismaError } = require('../../libs/http/error.handler.http');
+const { NotFoundError } = require('../../libs/http/error.handler.http');
+const { handlePrismaError } = require('../../libs/http/error.handler.http');
 
 class ReportService {
     async listReports(ownerId, query) {
@@ -82,19 +83,23 @@ class ReportService {
                             location: true
                         }
                     },
-                    evidence: true,
-                    officer: {
-                        select: {
-                            id: true,
-                            name: true,
-                            tracking: {
+                    evidences: true,
+                    assignments: {
+                        include: {
+                            officer: {
+                                select: {
+                                    id: true,
+                                    name: true
+                                }
+                            },
+                            trackings: {
                                 orderBy: {
                                     createdAt: 'desc'
                                 },
                                 take: 1,
                                 select: {
                                     id: true,
-                                    estimated_time: true,
+                                    estimatedTime: true,
                                     distance: true
                                 }
                             }
@@ -107,28 +112,38 @@ class ReportService {
                 throw new NotFoundError('Laporan tidak ditemukan');
             }
 
+            // Extract officer information from the first assignment if it exists
+            const assignment = report.assignments && report.assignments.length > 0
+                ? report.assignments[0]
+                : null;
+
+            const officerInfo = assignment?.officer
+                ? {
+                    id: assignment.officer.id,
+                    name: assignment.officer.name,
+                    tracking: assignment.trackings && assignment.trackings.length > 0
+                        ? assignment.trackings[0]
+                        : null
+                }
+                : null;
+
             return {
                 id: report.id,
                 title: report.title,
                 description: report.description,
                 status: report.status,
                 location: report.location,
-                report_image: report.report_image,
-                incident_type: report.incident_type,
+                report_image: report.reportImage,
+                incident_type: report.incidentType,
                 created_at: report.createdAt,
                 cctv: report.cctv,
-                is_assigned: !!report.officerId,
-                assigned_to: report.officer ? {
-                    id: report.officer.id,
-                    name: report.officer.name,
-                    tracking: report.officer.tracking
-                } : null
+                is_assigned: !!assignment,
+                assigned_to: officerInfo
             };
         } catch (error) {
             throw handlePrismaError(error);
         }
     }
-
     async getReportTracking(reportId, ownerId) {
         try {
             const report = await prisma.report.findFirst({
@@ -139,29 +154,35 @@ class ReportService {
                     }
                 },
                 include: {
-                    officer: {
-                        select: {
-                            id: true,
-                            name: true,
-                            phone: true,
-                            license_plate: true,
-                            vehicle_type: true,
-                            status: true
-                        }
-                    },
-                    tracking: {
-                        orderBy: {
-                            createdAt: 'desc'
-                        },
-                        select: {
-                            id: true,
-                            latitude: true,
-                            longitude: true,
-                            timestamp: true,
-                            distance: true,
-                            estimated_time: true,
-                            status: true,
-                            description: true
+                    // Include assignments which contain officer information
+                    assignments: {
+                        include: {
+                            officer: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    phone: true,
+                                    licensePlate: true,  // Camel case instead of snake case
+                                    vehicleType: true,   // Camel case instead of snake case
+                                    status: true
+                                }
+                            },
+                            // Include trackings through the assignment
+                            trackings: {
+                                orderBy: {
+                                    createdAt: 'desc'
+                                },
+                                select: {
+                                    id: true,
+                                    latitude: true,
+                                    longitude: true,
+                                    timestamp: true,
+                                    distance: true,
+                                    estimatedTime: true, // Camel case instead of snake case
+                                    status: true,
+                                    description: true
+                                }
+                            }
                         }
                     }
                 }
@@ -171,16 +192,24 @@ class ReportService {
                 throw new NotFoundError('Laporan tidak ditemukan');
             }
 
-            if (!report.officerId) {
+            // Check if there's an assignment (and thus an officer)
+            const assignment = report.assignments && report.assignments.length > 0
+                ? report.assignments[0]
+                : null;
+
+            if (!assignment) {
                 throw new NotFoundError('Belum ada petugas yang ditugaskan');
             }
+
+            const officer = assignment.officer;
+            const trackings = assignment.trackings || [];
 
             return {
                 id: report.id,
                 title_report: report.title,
-                is_nearby: report.tracking[0]?.distance < 100, // within 100 meters
-                officer: report.officer,
-                tracking: report.tracking
+                is_nearby: trackings.length > 0 && trackings[0].distance < 100, // within 100 meters
+                officer: officer,
+                tracking: trackings
             };
         } catch (error) {
             throw handlePrismaError(error);

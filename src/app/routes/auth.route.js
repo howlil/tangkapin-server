@@ -1,3 +1,4 @@
+// src/app/routes/auth.route.js
 const { Router } = require('express');
 const authController = require('../controller/auth.controller');
 const authMiddleware = require('../middleware/auth.middleware');
@@ -6,24 +7,26 @@ const authValidation = require('../validation/auth.validation');
 
 const router = Router();
 
-router.post('/auth/login',
+// Public routes - NO authentication middleware
+router.post('/v1/login',
     validationMiddleware.validateBody(authValidation.login()),
     authController.login
 );
 
-router.post('/auth/register',
+router.post('/v1/register',
     validationMiddleware.validateBody(authValidation.register()),
     authController.register
 );
 
-router.post('/auth/logout',
+// Protected routes - WITH authentication middleware
+router.post('/v1/logout',
     authMiddleware.authenticate,
     authController.logout
 );
 
-router.get('/auth/me',
+router.get('/v1/me',
     authMiddleware.authenticate,
     authController.getCurrentUser
 );
 
-module.exports = router; 
+module.exports = router;

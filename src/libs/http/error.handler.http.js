@@ -148,6 +148,27 @@ class ErrorHandler {
     });
   }
 
+  static handlePrismaError(error) {
+    logger.error('Database error:', error);
+
+    // Check by properties and code pattern instead of instanceof
+    if (error && error.name === 'PrismaClientKnownRequestError' || (error.code && error.code.startsWith('P'))) {
+      return new BadRequestError(this.getPrismaErrorMessage(error));
+    }
+
+    if (error && error.name === 'PrismaClientValidationError' || (error.message && error.message.includes('Prisma'))) {
+      const fieldMatch = error.message.match(/Unknown field `([^`]+)`/);
+      const modelMatch = error.message.match(/model `([^`]+)`/);
+
+      const errorMessage = fieldMatch && modelMatch
+        ? `Field '${fieldMatch[1]}' tidak tersedia pada model ${modelMatch[1]}`
+        : 'Invalid data provided';
+
+      return new BadRequestError(errorMessage);
+    }
+
+    return error instanceof HttpError ? error : new BadRequestError(error.message || 'Database operation failed');
+  }
   static getPrismaErrorMessage(error) {
     switch (error.code) {
       case 'P2002':

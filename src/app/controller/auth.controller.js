@@ -15,7 +15,12 @@ class AuthController {
     });
 
     getCurrentUser = ErrorHandler.asyncHandler(async (req, res) => {
-        const userId = req.user.id;
+        const userId = req.user.userId; // Make sure this is correctly set by your auth middleware
+
+        if (!userId) {
+            return Http.Response.unauthorized(res, 'Invalid authentication');
+        }
+
         const result = await authService.getCurrentUser(userId);
         return Http.Response.success(res, result, 'Data user berhasil diambil');
     });

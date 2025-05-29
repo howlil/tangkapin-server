@@ -10,23 +10,27 @@ class AuthMiddleware {
             throw new UnauthorizedError('Invalid token');
         }
     }
-
-    authenticate = (req, res, next) => {
-        try {
-            const authHeader = req.headers.authorization;
-            if (!authHeader?.startsWith('Bearer ')) {
-                throw new UnauthorizedError('No token provided');
-            }
-
-            const token = authHeader.split(' ')[1];
-            const decoded = this.#verifyToken(token);
-
-            req.user = decoded;
-            next();
-        } catch (error) {
-            next(error);
+authenticate = (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader?.startsWith('Bearer ')) {
+            throw new UnauthorizedError('No token provided');
         }
+
+        const token = authHeader.split(' ')[1];
+        const decoded = this.#verifyToken(token);
+
+        // Map userId to id for consistency
+        req.user = {
+            ...decoded,
+            id: decoded.userId 
+        };
+
+        next();
+    } catch (error) {
+        next(error);
     }
+}
 
     authorize = (...allowedRoles) => {
         return (req, res, next) => {
