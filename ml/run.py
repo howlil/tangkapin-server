@@ -4,9 +4,8 @@ import time
 from datetime import datetime
 from ultralytics import YOLO
 
-# CAMERA_URL = 'http://10.44.10.100:8080/video'  # ganti sesuai URL IP Cam hp kamu
 CAMERA_URL = 'http://192.168.1.18:8080/video'  # ganti sesuai URL IP Cam hp kamu
-MODEL_PATH = 'model/best.pt'  # Model YOLOv8 custom (.pt)
+MODEL_PATH = 'model/normal/best.pt'  # Model YOLOv8 custom (.pt)
 EVIDENCE_DIR = 'evidence'
 CONFIDENCE_THRESHOLD = 0.7   # Lebih tinggi, lebih akurat
 SKIP_FRAME = 3               # Proses tiap 3 frame, bisa 2/3 sesuai kecepatan hardware
@@ -19,12 +18,16 @@ def detect_objects_from_ipcam():
     video_capture = cv2.VideoCapture(CAMERA_URL)
     last_save_time = time.time()
     frame_count = 0
-    SAVE_INTERVAL = 5  # Detik
+    SAVE_INTERVAL = 5  
+
+    print("[INFO] Mulai deteksi dari IP Cam...")
+    start_time = time.time()
+    processed_frames = 0
 
     while True:
         ret, frame = video_capture.read()
         if not ret:
-            print("Stream selesai / tidak terbaca.")
+            print("[ERROR] Stream selesai / tidak terbaca.")
             break
 
         frame_count += 1
@@ -37,6 +40,7 @@ def detect_objects_from_ipcam():
         # Proses deteksi (YOLOv8 native)
         results = yolo_model(small_frame, verbose=False)
         detected = False
+        detected_objs = []
 
         for result in results:
             classes = result.names
@@ -69,6 +73,17 @@ def detect_objects_from_ipcam():
                     cv2.putText(frame, label, (xmin, ymin - 5), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
 
+                    # LOG: tampilkan di console
+                    detected_objs.append({
+                        "class": classes[int(cls[pos])],
+                        "confidence": float(conf[pos]),
+                        "box": [xmin, ymin, xmax, ymax]
+                    })
+
+        processed_frames += 1
+        # LOG: Tampilkan proses deteksi per frame
+        print(f"[FRAME {frame_count}] Detected: {detected} | Objects: {detected_objs if detected else 'None'}")
+
         # Simpan bukti jika ada deteksi, interval per 5 detik
         current_time = time.time()
         if detected and (current_time - last_save_time) >= SAVE_INTERVAL:
@@ -83,8 +98,15 @@ def detect_objects_from_ipcam():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
+        # (Optional) Tampilkan FPS setiap 30 processed frames
+        if processed_frames % 30 == 0:
+            elapsed = time.time() - start_time
+            fps = processed_frames / elapsed if elapsed > 0 else 0
+            print(f"[INFO] FPS: {fps:.2f}")
+
     video_capture.release()
     cv2.destroyAllWindows()
+    print("[INFO] Deteksi selesai.")
 
 # --- Jalankan Deteksi ---
 if __name__ == "__main__":

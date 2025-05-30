@@ -4,3 +4,12 @@ npm-debug.log
 .git
 .gitignore
 .DS_Store
+.vscode
+.idea
+# Logs
+venv
+logs
+python-venv
+__pycache__
+model
+.onnx
