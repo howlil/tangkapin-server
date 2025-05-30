@@ -10,7 +10,6 @@ const policeRoutes = require('./police.route');
 
 const router = Router();
 
-// Apply routes
 router.use(authRoutes);    // Auth routes (some public, some protected)
 router.use(detectionRoutes); 
 router.use(cctvRoutes);    // Protected routes

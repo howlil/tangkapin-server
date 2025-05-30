@@ -62,26 +62,26 @@ enum NotificationStatus {
 }
 
 model Owner {
-  id           String     @id @default(uuid())
+  id           String    @id @default(uuid())
   name         String?
-  email        String?    @unique
+  email        String?   @unique
   phone        String?
   address      String?
   passwordHash String?
   latitude     Float?
   longitude    Float?
-  createdAt    DateTime?  @default(now())
+  createdAt    DateTime? @default(now())
 
-  cctvs        CCTV[]
-  reports      Report[]
+  cctvs         CCTV[]
+  reports       Report[]
   notifications Notification[]
-  auditLogs    AuditLog[] @relation("AuditLogOwner")
+  auditLogs     AuditLog[]     @relation("AuditLogOwner")
 }
 
 model Officer {
-  id           String     @id @default(uuid())
+  id           String         @id @default(uuid())
   name         String?
-  email        String?    @unique
+  email        String?        @unique
   phone        String?
   address      String?
   passwordHash String?
@@ -90,18 +90,18 @@ model Officer {
   vehicleType  String?
   licensePlate String?
   status       OfficerStatus? // enum
-  createdAt    DateTime?  @default(now())
+  createdAt    DateTime?      @default(now())
 
-  assignments  Assignment[]
+  assignments   Assignment[]
   notifications Notification[]
-  auditLogs    AuditLog[] @relation("AuditLogOfficer")
-  trackings    Tracking[] @relation("TrackingOfficer")
+  auditLogs     AuditLog[]     @relation("AuditLogOfficer")
+  trackings     Tracking[]     @relation("TrackingOfficer")
 }
 
 model Police {
-  id           String     @id @default(uuid())
+  id           String        @id @default(uuid())
   name         String?
-  email        String?    @unique
+  email        String?       @unique
   phone        String?
   address      String?
   passwordHash String?
@@ -109,31 +109,31 @@ model Police {
   longitude    Float?
   officeName   String?
   status       PoliceStatus?
-  createdAt    DateTime?  @default(now())
+  createdAt    DateTime?     @default(now())
 
-  assignments  Assignment[]    @relation("AssignmentAssignedBy")
+  assignments   Assignment[]   @relation("AssignmentAssignedBy")
   notifications Notification[]
-  auditLogs    AuditLog[] @relation("AuditLogPolice")
+  auditLogs     AuditLog[]     @relation("AuditLogPolice")
 }
 
 model CCTV {
-  id          String    @id @default(uuid())
+  id          String      @id @default(uuid())
   ownerId     String
   name        String?
   location    String?
   description String?
-  IP          String?
+  IP          String?     @unique
   cameraType  String?
   streamUrl   String?
   status      CCTVStatus? // enum
-  createdAt   DateTime? @default(now())
+  createdAt   DateTime?   @default(now())
 
-  owner       Owner     @relation(fields: [ownerId], references: [id])
-  reports     Report[]
+  owner   Owner    @relation(fields: [ownerId], references: [id])
+  reports Report[]
 }
 
 model Report {
-  id           String     @id @default(uuid())
+  id           String        @id @default(uuid())
   cctvId       String? // bisa null, manual report
   ownerId      String
   title        String?
@@ -142,42 +142,42 @@ model Report {
   location     String?
   reportImage  String?
   incidentType IncidentType? // enum
-  createdAt    DateTime? @default(now())
+  createdAt    DateTime?     @default(now())
   updatedAt    DateTime?
   isAssigned   Boolean?
 
-  cctv         CCTV?     @relation(fields: [cctvId], references: [id])
-  owner        Owner     @relation(fields: [ownerId], references: [id])
-  evidences    Evidence[]
-  assignments  Assignment[]
+  cctv          CCTV?          @relation(fields: [cctvId], references: [id])
+  owner         Owner          @relation(fields: [ownerId], references: [id])
+  evidences     Evidence[]
+  assignments   Assignment[]
   notifications Notification[]
 }
 
 model Evidence {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   reportId  String
   fileUrl   String?
   type      String?
   createdAt DateTime? @default(now())
 
-  report    Report   @relation(fields: [reportId], references: [id])
+  report Report @relation(fields: [reportId], references: [id])
 }
 
 model Assignment {
-  id          String    @id @default(uuid())
-  reportId    String
-  officerId   String
-  assignedBy  String? // Police yang assign
-  assignedAt  DateTime?
+  id         String    @id @default(uuid())
+  reportId   String
+  officerId  String
+  assignedBy String? // Police yang assign
+  assignedAt DateTime?
 
-  report      Report   @relation(fields: [reportId], references: [id])
-  officer     Officer  @relation(fields: [officerId], references: [id])
-  assignedByPolice Police?   @relation("AssignmentAssignedBy", fields: [assignedBy], references: [id])
-  trackings   Tracking[]
+  report           Report     @relation(fields: [reportId], references: [id])
+  officer          Officer    @relation(fields: [officerId], references: [id])
+  assignedByPolice Police?    @relation("AssignmentAssignedBy", fields: [assignedBy], references: [id])
+  trackings        Tracking[]
 }
 
 model Tracking {
-  id            String    @id @default(uuid())
+  id            String          @id @default(uuid())
   assignmentId  String
   officerId     String
   latitude      Float?
@@ -187,35 +187,34 @@ model Tracking {
   estimatedTime String?
   status        TrackingStatus? // enum
   description   String?
-  createdAt     DateTime? @default(now())
+  createdAt     DateTime?       @default(now())
   updatedAt     DateTime?
-  assignment    Assignment @relation(fields: [assignmentId], references: [id])
-  officer       Officer @relation("TrackingOfficer", fields: [officerId], references: [id])
-    
+  assignment    Assignment      @relation(fields: [assignmentId], references: [id])
+  officer       Officer         @relation("TrackingOfficer", fields: [officerId], references: [id])
 }
 
 model Notification {
-  id         String   @id @default(uuid())
-  ownerId    String?
-  officerId  String?
-  policeId   String?
-  title      String?
-  message    String?
-  type       NotificationType? // enum
-  status     NotificationStatus? // enum
-  image      String?
-  reportId   String?
-  createdAt  DateTime? @default(now())
-  isRead     Boolean?
+  id        String              @id @default(uuid())
+  ownerId   String?
+  officerId String?
+  policeId  String?
+  title     String?
+  message   String?
+  type      NotificationType? // enum
+  status    NotificationStatus? // enum
+  image     String?
+  reportId  String?
+  createdAt DateTime?           @default(now())
+  isRead    Boolean?
 
-  owner      Owner?   @relation(fields: [ownerId], references: [id])
-  officer    Officer? @relation(fields: [officerId], references: [id])
-  police     Police?  @relation(fields: [policeId], references: [id])
-  report     Report?  @relation(fields: [reportId], references: [id])
+  owner   Owner?   @relation(fields: [ownerId], references: [id])
+  officer Officer? @relation(fields: [officerId], references: [id])
+  police  Police?  @relation(fields: [policeId], references: [id])
+  report  Report?  @relation(fields: [reportId], references: [id])
 }
 
 model AuditLog {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   entity         String?
   entityId       String?
   action         String?
@@ -225,7 +224,7 @@ model AuditLog {
   description    String?
   createdAt      DateTime? @default(now())
 
-  actorOwner     Owner?   @relation("AuditLogOwner", fields: [actorOwnerId], references: [id])
-  actorOfficer   Officer? @relation("AuditLogOfficer", fields: [actorOfficerId], references: [id])
-  actorPolice    Police?  @relation("AuditLogPolice", fields: [actorPoliceId], references: [id])
+  actorOwner   Owner?   @relation("AuditLogOwner", fields: [actorOwnerId], references: [id])
+  actorOfficer Officer? @relation("AuditLogOfficer", fields: [actorOfficerId], references: [id])
+  actorPolice  Police?  @relation("AuditLogPolice", fields: [actorPoliceId], references: [id])
 }

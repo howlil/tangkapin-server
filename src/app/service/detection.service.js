@@ -8,7 +8,7 @@ class DetectionService {
         return prisma.evidence.create({
             data: {
                 reportId,
-                fileUrl: imageData, // Changed from imageUrl to fileUrl based on error message
+                fileUrl: imageData,
                 type: 'IMAGE'
             }
         });
@@ -17,7 +17,7 @@ class DetectionService {
     async #findNearestPoliceStation(latitude, longitude) {
         const policeStation = await prisma.officer.findFirst({
             where: {
-                status: 'available' // Make sure it matches your enum in schema (lowercase)
+                status: 'available'
             }
         });
 
@@ -34,26 +34,16 @@ class DetectionService {
             await pusher.notifyOwner(cctv.ownerId, 'weapon-detected', {
                 reportId: report.id,
                 cctvId: cctv.id,
-                incidentType: report.incidentType, // Changed from snake_case to camelCase
+                incidentType: report.incidentType,
                 location: report.location,
                 timestamp: report.createdAt
             });
 
-            // If police station is assigned, notify them
-            if (report.officerId) {
-                await pusher.notifyPolice(report.officerId, 'new-incident', {
-                    reportId: report.id,
-                    location: report.location,
-                    incidentType: report.incidentType, // Changed from snake_case to camelCase
-                    evidenceUrl: evidence.fileUrl // Changed from imageUrl to fileUrl
-                });
-            }
-
             // Notify on CCTV channel for real-time monitoring
             await pusher.notifyDetection(cctv.id, {
                 reportId: report.id,
-                incidentType: report.incidentType, // Changed from snake_case to camelCase
-                evidenceUrl: evidence.fileUrl // Changed from imageUrl to fileUrl
+                incidentType: report.incidentType,
+                evidenceUrl: evidence.fileUrl
             });
         } catch (error) {
             logger.error('Error sending notifications:', error);
@@ -63,72 +53,102 @@ class DetectionService {
 
     async detect(detectionData) {
         try {
-            // Convert incoming snake_case to camelCase for Prisma
-            const reportData = {
-                title: detectionData.report.title,
-                description: detectionData.report.description,
-                location: detectionData.report.location,
-                incidentType: detectionData.report.incident_type, // Convert snake_case to camelCase
-                reportImage: detectionData.report.report_image // Convert snake_case to camelCase
-            };
 
+            // harusnya detection data ini hanya nginmkan ipnya apa dan image nya apa, baru generate lapornaya disini
+            // Find CCTV by IP instead of ID
             const cctv = await prisma.cCTV.findUnique({
-                where: { id: detectionData.cctv_id },
+                where: { IP: detectionData.cctv_ip },
                 include: { owner: true }
             });
 
             if (!cctv) {
-                throw new NotFoundError('CCTV tidak ditemukan');
+                throw new NotFoundError('CCTV dengan IP tersebut tidak ditemukan');
+            }
+
+            // Check if CCTV is active
+            if (cctv.status !== 'online') {
+                throw new BadRequestError('CCTV tidak aktif');
             }
 
             const nearestPolice = await this.#findNearestPoliceStation(
-                cctv.latitude,
-                cctv.longitude
+                cctv.owner.latitude,
+                cctv.owner.longitude
             );
 
             const result = await prisma.$transaction(async (tx) => {
-                // Create report with proper camelCase field names
+                // Create report
                 const report = await tx.report.create({
                     data: {
-                        title: reportData.title,
-                        description: reportData.description,
-                        location: reportData.location,
-                        incidentType: reportData.incidentType, // Use camelCase here
-                        status: 'new', // Make sure it matches your enum case in schema
+                        title: detectionData.report.title,
+                        description: detectionData.report.description,
+                        location: detectionData.report.location,
+                        incidentType: detectionData.report.incident_type,
+                        status: 'new',
                         cctvId: cctv.id,
                         ownerId: cctv.ownerId,
-                        officerId: nearestPolice?.id,
-                        createdAt: detectionData.timestamp || new Date(),
-                        reportImage: reportData.reportImage // Correct field name
+                        reportImage: detectionData.report.report_image,
+                        createdAt: detectionData.timestamp ? new Date(detectionData.timestamp) : new Date()
                     }
                 });
 
-                // Create evidence with proper field names
+                // Create evidence
                 const evidence = await tx.evidence.create({
                     data: {
                         reportId: report.id,
-                        fileUrl: reportData.reportImage, // Use fileUrl instead of imageUrl
+                        fileUrl: detectionData.report.report_image,
                         type: 'IMAGE'
                     }
                 });
 
+                // Create notification for owner
+                await tx.notification.create({
+                    data: {
+                        ownerId: cctv.ownerId,
+                        title: 'Deteksi Senjata Baru',
+                        message: `Sistem mendeteksi ${detectionData.report.incident_type === 'knife' ? 'pisau' : 'senjata api'} di ${detectionData.report.location}`,
+                        type: 'report',
+                        status: 'unread',
+                        image: detectionData.report.report_image,
+                        reportId: report.id,
+                        createdAt: new Date(),
+                        isRead: false
+                    }
+                });
+
+                // If nearest police found, create notification
+                if (nearestPolice) {
+                    await tx.notification.create({
+                        data: {
+                            officerId: nearestPolice.id,
+                            title: 'Laporan Baru Memerlukan Verifikasi',
+                            message: `Deteksi ${detectionData.report.incident_type === 'knife' ? 'pisau' : 'senjata api'} di ${detectionData.report.location}`,
+                            type: 'report',
+                            status: 'unread',
+                            reportId: report.id,
+                            createdAt: new Date(),
+                            isRead: false
+                        }
+                    });
+                }
+
                 return { report, evidence };
             });
 
-            // Send notifications
+            // Send real-time notifications
             await this.#notifyStakeholders(result.report, cctv, result.evidence);
 
-            // Return data matching the API contract (snake_case for response)
+            logger.info(`Weapon detection reported for CCTV IP: ${detectionData.cctv_ip}`);
+
             return {
                 id: result.report.id,
                 status: result.report.status,
-                incident_type: result.report.incidentType, // Convert back to snake_case for API response
+                incident_type: result.report.incidentType,
                 location: result.report.location,
-                evidence_url: result.evidence.fileUrl, // Convert back to snake_case for API response
-                is_assigned: !!result.report.officerId
+                evidence_url: result.evidence.fileUrl,
+                cctv_ip: cctv.IP
             };
         } catch (error) {
-            logger.error('Prisma error:', error);
+            logger.error('Error in detection service:', error);
             throw handlePrismaError(error);
         }
     }

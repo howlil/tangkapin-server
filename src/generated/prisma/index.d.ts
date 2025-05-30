@@ -14765,6 +14765,7 @@ export namespace Prisma {
 
   export type CCTVWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    IP?: string
     AND?: CCTVWhereInput | CCTVWhereInput[]
     OR?: CCTVWhereInput[]
     NOT?: CCTVWhereInput | CCTVWhereInput[]
@@ -14772,14 +14773,13 @@ export namespace Prisma {
     name?: StringNullableFilter<"CCTV"> | string | null
     location?: StringNullableFilter<"CCTV"> | string | null
     description?: StringNullableFilter<"CCTV"> | string | null
-    IP?: StringNullableFilter<"CCTV"> | string | null
     cameraType?: StringNullableFilter<"CCTV"> | string | null
     streamUrl?: StringNullableFilter<"CCTV"> | string | null
     status?: EnumCCTVStatusNullableFilter<"CCTV"> | $Enums.CCTVStatus | null
     createdAt?: DateTimeNullableFilter<"CCTV"> | Date | string | null
     owner?: XOR<OwnerScalarRelationFilter, OwnerWhereInput>
     reports?: ReportListRelationFilter
-  }, "id">
+  }, "id" | "IP">
 
   export type CCTVOrderByWithAggregationInput = {
     id?: SortOrder

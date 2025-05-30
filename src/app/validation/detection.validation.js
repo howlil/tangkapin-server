@@ -4,10 +4,12 @@ const ValidatorFactory = require('./factory.validation');
 class DetectionValidation {
     static detect() {
         return ValidatorFactory.create({
-            cctv_id: Joi.string()
+            cctv_ip: Joi.string()
+                .ip()
                 .required()
                 .messages({
-                    'any.required': 'ID CCTV wajib diisi'
+                    'any.required': 'IP CCTV wajib diisi',
+                    'string.ip': 'Format IP tidak valid'
                 }),
             timestamp: Joi.date()
                 .iso()
@@ -48,4 +50,4 @@ class DetectionValidation {
     }
 }
 
-module.exports = DetectionValidation; 
+module.exports = DetectionValidation;

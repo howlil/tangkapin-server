@@ -1,30 +1,20 @@
-
 module.exports = {
   apps: [
     {
-      name: 'express-api',
+      name: 'node-api',
       script: 'src/index.js',
-      instances: 1,
-      autorestart: true,
       watch: false,
-      max_memory_restart: '1G',
-      env: {
-        NODE_ENV: 'production',
-        PORT: 3000
-      }
-    },
-    {
-      name: 'ml-detection',
-      script: 'ml/run.py',
-      interpreter: 'python',
-      instances: 1,
-      autorestart: true,
-      watch: false,
-      max_memory_restart: '2G',
       env: {
         NODE_ENV: 'production',
         PORT: 5000
       }
+    },
+    {
+      name: 'ml-service',
+      script: 'run.py',
+      interpreter: './ml/env/Scripts/python.exe', // <- ganti sesuai OS
+      cwd: './ml',
+      watch: false
     }
   ]
 };

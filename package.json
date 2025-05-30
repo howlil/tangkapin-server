@@ -8,7 +8,7 @@
     "start:ml": "cd ml && python run.py",
     "start:all": "node start.js",
     "dev": "nodemon src/index.js",
-    "dev:all": "concurrently \"nodemon src/index.js\" \"cd ml && python run.py\"",
+    "dev:all": "concurrently  \"cd ml && env\\Scripts\\python run.py\"  \"nodemon src/index.js\"",
     "db:seed": "node prisma/seed.js",
     "db:reset": "prisma migrate reset --force"
   },
@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^9.8.0",
+    "concurrently": "^9.1.2",
     "prisma": "^6.8.2"
   }
 }
