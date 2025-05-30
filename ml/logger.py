@@ -21,7 +21,7 @@ class Logger:
         # File handler - separate files for each day
         today = datetime.now().strftime('%Y-%m-%d')
         file_handler = logging.FileHandler(
-            f'{self.logs_dir}/{today}.log'
+            f'{self.logs_dir}/{today}_{self.logger.name}.log'
         )
         file_handler.setLevel(logging.INFO)
         

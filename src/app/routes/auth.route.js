@@ -7,6 +7,7 @@ const authValidation = require('../validation/auth.validation');
 
 const router = Router();
 
+
 // Public routes - NO authentication middleware
 router.post('/v1/login',
     validationMiddleware.validateBody(authValidation.login()),

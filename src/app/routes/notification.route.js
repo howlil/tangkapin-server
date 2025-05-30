@@ -6,7 +6,6 @@ const notificationValidation = require('../validation/notification.validation');
 
 const router = Router();
 
-// Apply authentication middleware to all routes
 router.use(authMiddleware.authenticate);
 
 router.get('/v1/notification',

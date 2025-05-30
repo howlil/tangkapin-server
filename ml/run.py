@@ -1,92 +1,75 @@
-
+import cv2
+import numpy as np
 import os
-import sys
-import argparse
-from dotenv import load_dotenv
+import time
+from datetime import datetime
+from ultralytics import YOLO
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+CAMERA_URL = 'http://10.44.10.100:8080/video'
+MODEL_PATH = 'model/best.onnx'
+EVIDENCE_DIR = 'evidence'
+CONFIDENCE_THRESHOLD = 0.5
+SAVE_INTERVAL = 5  # detik
 
-from logger import detection_logger as logger
+os.makedirs(EVIDENCE_DIR, exist_ok=True)
 
-def parse_arguments():
-    """Parse command line arguments"""
-    parser = argparse.ArgumentParser(description='Weapon Detection System')
-    parser.add_argument('--config', '-c', 
-                        help='Path to .env configuration file', 
-                        default='.env')
-    parser.add_argument('--model', '-m',
-                        help='Path to YOLO model file',
-                        default=None)
-    parser.add_argument('--cameras', 
-                        help='Comma-separated list of camera URLs (overrides .env)',
-                        default=None)
-    parser.add_argument('--api-endpoint',
-                        help='API endpoint URL (overrides .env)',
-                        default=None)
-    parser.add_argument('--verbose', '-v', 
-                        action='store_true',
-                        help='Enable verbose logging')
-    return parser.parse_args()
+def detect_objects_from_ipcam():
+    yolo_model = YOLO(MODEL_PATH)
+    video_capture = cv2.VideoCapture(CAMERA_URL)
+    last_save_time = time.time()
 
-def main():
-    """Main entry point for the weapon detection system"""
-    args = parse_arguments()
-    
-    # Load configuration from specified .env file
-    if os.path.exists(args.config):
-        logger.info(f"Loading configuration from {args.config}")
-        load_dotenv(args.config)
-    else:
-        logger.warning(f"Configuration file {args.config} not found, using default settings")
-        load_dotenv()
-    
-    # Override settings with command line arguments if provided
-    if args.model:
-        os.environ['MODEL_PATH'] = args.model
-        logger.info(f"Using model from command line: {args.model}")
-    
-    if args.cameras:
-        os.environ['CAMERA_URLS'] = args.cameras
-        logger.info(f"Using cameras from command line: {args.cameras}")
-    
-    if args.api_endpoint:
-        os.environ['API_ENDPOINT'] = args.api_endpoint
-        logger.info(f"Using API endpoint from command line: {args.api_endpoint}")
-    
-    # Set verbose logging if requested
-    if args.verbose:
-        import logging
-        for handler in logger.logger.handlers:
-            handler.setLevel(logging.DEBUG)
-        logger.logger.setLevel(logging.DEBUG)
-        logger.debug("Verbose logging enabled")
-    
-    # Check for required environment variables
-    required_vars = ['MODEL_PATH', 'CAMERA_URLS', 'API_ENDPOINT']
-    missing_vars = [var for var in required_vars if not os.getenv(var)]
-    
-    if missing_vars:
-        logger.error(f"Missing required environment variables: {', '.join(missing_vars)}")
-        logger.error("Please check your .env file or provide them as command line arguments")
-        sys.exit(1)
-    
-    # Validate model path
-    model_path = os.getenv('MODEL_PATH')
-    if not os.path.exists(model_path):
-        logger.error(f"Model not found at {model_path}")
-        logger.error("Please download or specify the correct model path")
-        sys.exit(1)
-    
-    # Import and run the detection system
-    try:
-        from weapon_detection import main as run_detection
-        logger.info("Starting weapon detection system...")
-        run_detection()
-    except KeyboardInterrupt:
-        logger.info("Detection system stopped by user")
-    except Exception as e:
-        logger.error(f"Error running detection system: {e}")
-        sys.exit(1)
+    while True:
+        ret, frame = video_capture.read()
+        if not ret:
+            break
 
-if __name__ == "__main__":
-    main()
+        results = yolo_model(frame)
+        detected = False
+
+        for result in results:
+            classes = result.names
+            cls = result.boxes.cls
+            conf = result.boxes.conf
+            detections = result.boxes.xyxy
+
+            for pos, detection in enumerate(detections):
+                if conf[pos] >= CONFIDENCE_THRESHOLD:
+                    detected = True
+                    xmin, ymin, xmax, ymax = detection
+                    label = f"{classes[int(cls[pos])]} {conf[pos]:.2f}"
+                    color = (0, int(cls[pos]), 255)
+                    # --- DRAW BOX ---
+                    cv2.rectangle(frame, (int(xmin), int(ymin)), (int(xmax), int(ymax)), color, 2)
+                    
+                    # --- DRAW LABEL WITH BACKGROUND ---
+                    (text_width, text_height), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
+                    # Draw background rectangle for label
+                    cv2.rectangle(frame, 
+                        (int(xmin), int(ymin) - text_height - 10), 
+                        (int(xmin) + text_width, int(ymin)), 
+                        color, 
+                        thickness=cv2.FILLED
+                    )
+                    # Draw text above the bounding box
+                    cv2.putText(frame, label, (int(xmin), int(ymin) - 5), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
+
+        # Save evidence per interval
+        current_time = time.time()
+        if detected and (current_time - last_save_time) >= SAVE_INTERVAL:
+            filename = datetime.now().strftime("%Y%m%d_%H%M%S") + ".jpg"
+            save_path = os.path.join(EVIDENCE_DIR, filename)
+            cv2.imwrite(save_path, frame)
+            last_save_time = current_time
+            print(f"[INFO] Evidence saved: {save_path}")
+
+        # OPTIONAL: tampilkan frame deteksi secara real-time
+        # cv2.imshow("Detection", frame)
+        # if cv2.waitKey(1) & 0xFF == ord('q'):
+        #     break
+
+    video_capture.release()
+    # cv2.destroyAllWindows()
+
+# Jalankan deteksi
+detect_objects_from_ipcam()

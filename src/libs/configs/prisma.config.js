@@ -1,7 +1,7 @@
+// src/libs/configs/prisma.config.js
 const { PrismaClient } = require('../../generated/prisma');
 const { logger } = require('./logger.config');
 require('dotenv').config();
-
 
 class PrismaConfig {
   #client;

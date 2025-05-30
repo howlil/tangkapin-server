@@ -8,17 +8,16 @@ class DetectionService {
         return prisma.evidence.create({
             data: {
                 reportId,
-                imageUrl: imageData,
+                fileUrl: imageData, // Changed from imageUrl to fileUrl based on error message
                 type: 'IMAGE'
             }
         });
     }
 
     async #findNearestPoliceStation(latitude, longitude) {
-    
         const policeStation = await prisma.officer.findFirst({
             where: {
-                status: 'AVAILABLE'
+                status: 'available' // Make sure it matches your enum in schema (lowercase)
             }
         });
 
@@ -35,7 +34,7 @@ class DetectionService {
             await pusher.notifyOwner(cctv.ownerId, 'weapon-detected', {
                 reportId: report.id,
                 cctvId: cctv.id,
-                incidentType: report.incident_type,
+                incidentType: report.incidentType, // Changed from snake_case to camelCase
                 location: report.location,
                 timestamp: report.createdAt
             });
@@ -45,16 +44,16 @@ class DetectionService {
                 await pusher.notifyPolice(report.officerId, 'new-incident', {
                     reportId: report.id,
                     location: report.location,
-                    incidentType: report.incident_type,
-                    evidenceUrl: evidence.imageUrl
+                    incidentType: report.incidentType, // Changed from snake_case to camelCase
+                    evidenceUrl: evidence.fileUrl // Changed from imageUrl to fileUrl
                 });
             }
 
             // Notify on CCTV channel for real-time monitoring
             await pusher.notifyDetection(cctv.id, {
                 reportId: report.id,
-                incidentType: report.incident_type,
-                evidenceUrl: evidence.imageUrl
+                incidentType: report.incidentType, // Changed from snake_case to camelCase
+                evidenceUrl: evidence.fileUrl // Changed from imageUrl to fileUrl
             });
         } catch (error) {
             logger.error('Error sending notifications:', error);
@@ -64,7 +63,16 @@ class DetectionService {
 
     async detect(detectionData) {
         try {
-            const cctv = await prisma.cctv.findUnique({
+            // Convert incoming snake_case to camelCase for Prisma
+            const reportData = {
+                title: detectionData.report.title,
+                description: detectionData.report.description,
+                location: detectionData.report.location,
+                incidentType: detectionData.report.incident_type, // Convert snake_case to camelCase
+                reportImage: detectionData.report.report_image // Convert snake_case to camelCase
+            };
+
+            const cctv = await prisma.cCTV.findUnique({
                 where: { id: detectionData.cctv_id },
                 include: { owner: true }
             });
@@ -79,25 +87,27 @@ class DetectionService {
             );
 
             const result = await prisma.$transaction(async (tx) => {
-                // Create report
+                // Create report with proper camelCase field names
                 const report = await tx.report.create({
                     data: {
-                        title: detectionData.report.title,
-                        description: detectionData.report.description,
-                        location: detectionData.report.location,
-                        incident_type: detectionData.report.incident_type,
-                        status: 'NEW',
+                        title: reportData.title,
+                        description: reportData.description,
+                        location: reportData.location,
+                        incidentType: reportData.incidentType, // Use camelCase here
+                        status: 'new', // Make sure it matches your enum case in schema
                         cctvId: cctv.id,
+                        ownerId: cctv.ownerId,
                         officerId: nearestPolice?.id,
-                        timestamp: detectionData.timestamp || new Date()
+                        createdAt: detectionData.timestamp || new Date(),
+                        reportImage: reportData.reportImage // Correct field name
                     }
                 });
 
-                // Create evidence
+                // Create evidence with proper field names
                 const evidence = await tx.evidence.create({
                     data: {
                         reportId: report.id,
-                        imageUrl: detectionData.report.report_image,
+                        fileUrl: reportData.reportImage, // Use fileUrl instead of imageUrl
                         type: 'IMAGE'
                     }
                 });
@@ -108,18 +118,20 @@ class DetectionService {
             // Send notifications
             await this.#notifyStakeholders(result.report, cctv, result.evidence);
 
+            // Return data matching the API contract (snake_case for response)
             return {
                 id: result.report.id,
                 status: result.report.status,
-                incident_type: result.report.incident_type,
+                incident_type: result.report.incidentType, // Convert back to snake_case for API response
                 location: result.report.location,
-                evidence_url: result.evidence.imageUrl,
+                evidence_url: result.evidence.fileUrl, // Convert back to snake_case for API response
                 is_assigned: !!result.report.officerId
             };
         } catch (error) {
+            logger.error('Prisma error:', error);
             throw handlePrismaError(error);
         }
     }
 }
 
-module.exports = new DetectionService(); 
+module.exports = new DetectionService();

@@ -308,7 +308,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "C:\\Users\\USER\\Documents\\code\\hackaton\\pnp\\be\\src\\generated\\prisma",
+      "value": "C:\\Users\\USER\\Documents\\code\\hackaton\\pnp\\api\\src\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -322,7 +322,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "C:\\Users\\USER\\Documents\\code\\hackaton\\pnp\\be\\prisma\\schema.prisma",
+    "sourceFilePath": "C:\\Users\\USER\\Documents\\code\\hackaton\\pnp\\api\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
@@ -336,6 +336,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
