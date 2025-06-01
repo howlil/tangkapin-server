@@ -6,22 +6,25 @@ const reportValidation = require('../validation/report.validation');
 
 const router = Router();
 
-router.use(authMiddleware.authenticate);
 
 router.get('/v1/report',
+    authMiddleware.authenticate,
     validationMiddleware.validateQuery(reportValidation.list()),
     reportController.list
 );
 
 router.get('/v1/report/:id',
+    authMiddleware.authenticate,
     reportController.getDetail
 );
 
 router.get('/v1/report/:id/track',
+    authMiddleware.authenticate,
     reportController.getTracking
 );
 
 router.post('/v1/report',
+    authMiddleware.authenticate,
     validationMiddleware.validateBody(reportValidation.createManual()),
     reportController.createManual
 );

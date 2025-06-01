@@ -4,8 +4,8 @@ import time
 from datetime import datetime
 from ultralytics import YOLO
 
-CAMERA_URL = 'http://192.168.1.18:8080/video'  # ganti sesuai URL IP Cam hp kamu
-MODEL_PATH = 'model/normal/best.pt'  # Model YOLOv8 custom (.pt)
+CAMERA_URL = 'http://192.168.191.18:8080/video'  # ganti sesuai URL IP Cam hp kamu
+MODEL_PATH = 'model/best.pt'  # Model YOLOv8 custom (.pt)
 EVIDENCE_DIR = 'evidence'
 CONFIDENCE_THRESHOLD = 0.7   # Lebih tinggi, lebih akurat
 SKIP_FRAME = 3               # Proses tiap 3 frame, bisa 2/3 sesuai kecepatan hardware

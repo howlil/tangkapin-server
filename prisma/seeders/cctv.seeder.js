@@ -10,23 +10,28 @@ const { createCCTVFactory } = require('../factories/cctv.factory');
 async function seedCCTVs(prisma, owners, count = 25) {
   console.log(`Creating ${count} CCTVs...`);
   
-  const cctvFactory = createCCTVFactory(owners);
+  const usedIPs = new Set();
+  const cctvFactory = createCCTVFactory(owners, usedIPs);
   const cctvs = [];
   
-  for (const owner of owners) {
-    // Create at least one CCTV per owner
+  // Create at least one CCTV per owner with unique IPs
+  for (let i = 0; i < owners.length; i++) {
+    const owner = owners[i];
+    const uniqueIP = `192.168.1.${100 + i}`; // Sequential IPs starting from 192.168.1.100
+    
     const cctvData = {
       ownerId: owner.id,
       name: `CCTV-${owner.name.split(' ')[0]}-1`,
       location: 'Lokasi Utama',
       description: 'CCTV utama untuk monitoring',
-      IP: '192.168.1.100',
+      IP: uniqueIP,
       cameraType: 'Hikvision Dome 1080p',
-      streamUrl: 'http://192.168.1.100:554/video',
+      streamUrl: `http://${uniqueIP}:554/video`,
       status: 'online',
       createdAt: new Date()
     };
     
+    usedIPs.add(uniqueIP);
     const cctv = await prisma.CCTV.create({ data: cctvData });
     cctvs.push(cctv);
   }
@@ -35,9 +40,17 @@ async function seedCCTVs(prisma, owners, count = 25) {
   const remainingCount = count - owners.length;
   
   for (let i = 0; i < remainingCount; i++) {
-    const cctvData = cctvFactory();
-    const cctv = await prisma.CCTV.create({ data: cctvData });
-    cctvs.push(cctv);
+    try {
+      const cctvData = cctvFactory();
+      const cctv = await prisma.CCTV.create({ data: cctvData });
+      cctvs.push(cctv);
+    } catch (error) {
+      if (error.code === 'P2002') {
+        console.warn(`Skipping CCTV creation due to duplicate IP: ${error.meta?.target}`);
+        continue;
+      }
+      throw error;
+    }
   }
   
   console.log(`Created ${cctvs.length} CCTVs`);

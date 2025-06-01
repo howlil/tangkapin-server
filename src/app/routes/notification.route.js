@@ -6,18 +6,20 @@ const notificationValidation = require('../validation/notification.validation');
 
 const router = Router();
 
-router.use(authMiddleware.authenticate);
 
 router.get('/v1/notification',
+authMiddleware.authenticate,
     validationMiddleware.validateQuery(notificationValidation.list()),
     notificationController.list
 );
 
 router.patch('/v1/notification/:id/read',
+    authMiddleware.authenticate,        
     notificationController.markAsRead
 );
 
 router.patch('/v1/notification/read-all',
+    authMiddleware.authenticate,
     notificationController.markAllAsRead
 );
 

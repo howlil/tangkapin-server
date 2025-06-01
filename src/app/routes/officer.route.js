@@ -6,49 +6,72 @@ const officerValidation = require('../validation/officer.validation');
 
 const router = Router();
 
-// Apply authentication and authorization middleware to all routes
-router.use(authMiddleware.authenticate);
-router.use(authMiddleware.authorize('OFFICER'));
 
 // Dashboard endpoints
-router.get('/officer/count',
+router.get('/v1/officer/count',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('OFFICER'),
     officerController.getDashboardCounts
 );
 
-router.get('/officer/case-status',
+router.get('/v1/officer/case-status',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('OFFICER'),
     officerController.getCaseStatusCount
 );
 
 // Reports management
-router.get('/officer/latest-report',
-    validationMiddleware.validateQuery(officerValidation.listReports()),
+router.get('/v1/officer/latest-report',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('OFFICER'),
     officerController.getLatestReports
 );
 
 // Notifications
-router.get('/officer/notification',
+router.get('/v1/officer/notification',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('OFFICER'),
     validationMiddleware.validateQuery(officerValidation.listNotifications()),
     officerController.getNotifications
 );
 
 // Report actions
-router.post('/officer/verify/:report_id',
+router.post('/v1/officer/verify/:report_id',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('OFFICER'),
     validationMiddleware.validateBody(officerValidation.verifyReport()),
     officerController.verifyReport
 );
 
-router.post('/officer/assign/:report_id',
+router.post('/v1/officer/assign/:report_id',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('OFFICER'),
     validationMiddleware.validateBody(officerValidation.assignOfficer()),
     officerController.assignOfficer
 );
 
 // Officers management
-router.get('/officer/available',
+router.get('/v1/officer/available',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('OFFICER'),
     officerController.getAvailableOfficers
 );
 
-router.get('/officer/police',
-    validationMiddleware.validateQuery(officerValidation.listPolice()),
+router.get('/v1/officer/incident-map',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('OFFICER'),
+    officerController.getCurrentIncidentMap
+);
+
+router.get('/v1/officer/recent-alerts',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('OFFICER'),
+    officerController.getRecentAlerts
+);
+
+router.get('/v1/officer/police',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('OFFICER'),
     officerController.getPoliceList
 );
 

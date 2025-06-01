@@ -9,11 +9,31 @@ const {
 /**
  * Create a factory function for CCTV model
  * @param {Array} owners - Array of owner objects
+ * @param {Set} usedIPs - Set to track used IP addresses
  * @returns {Function} - Factory function
  */
-function createCCTVFactory(owners) {
+function createCCTVFactory(owners, usedIPs = new Set()) {
   return () => {
-    const ip = generateIndonesianIP();
+    let ip;
+    let attempts = 0;
+    const maxAttempts = 100;
+    
+    // Generate unique IP
+    do {
+      ip = generateIndonesianIP();
+      attempts++;
+    } while (usedIPs.has(ip) && attempts < maxAttempts);
+    
+    if (attempts >= maxAttempts) {
+      // Fallback to timestamp-based IP if we can't generate unique
+      const timestamp = Date.now();
+      const lastOctet = timestamp % 254 + 1;
+      const thirdOctet = Math.floor(timestamp / 254) % 254 + 1;
+      ip = `192.168.${thirdOctet}.${lastOctet}`;
+    }
+    
+    usedIPs.add(ip);
+    
     const locations = getIndonesianLocations();
     const location = faker.helpers.arrayElement(locations);
     const statuses = ['online', 'offline', 'inactive'];

@@ -14,7 +14,7 @@ async function seedOwners(prisma, count = 10) {
       email: 'owner@example.com',
       phone: '+6281234567890',
       address: 'Jl. Contoh No. 123, Jakarta',
-      passwordHash: await require('../factories/utils.factory').hashPassword('owner123'),
+      passwordHash: await require('../factories/utils.factory').hashPassword('@Test123'),
       latitude: -6.2088,
       longitude: 106.8456,
       createdAt: new Date()

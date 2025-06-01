@@ -7,7 +7,7 @@ class SecurityMiddleware {
   
   static get cors() {
     return cors({
-      origin: process.env.CORS_ORIGIN || '*',
+      origin:  '*',
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
       exposedHeaders: ['Content-Length', 'X-Total-Count'],

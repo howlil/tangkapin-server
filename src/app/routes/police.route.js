@@ -6,42 +6,52 @@ const policeValidation = require('../validation/police.validation');
 
 const router = Router();
 
-// Apply authentication and authorization middleware to all routes
-router.use(authMiddleware.authenticate);
-router.use(authMiddleware.authorize('POLICE'));
-
 // Dashboard
 router.get('/police/dashboard',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('POLICE'),
     policeController.getDashboard
 );
 
 // Reports management
 router.get('/police/report/active',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('POLICE'),
     validationMiddleware.validateQuery(policeValidation.listActiveReports()),
     policeController.getActiveReports
 );
 
 router.get('/police/report/:id',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('POLICE'),
     policeController.getReportDetail
 );
 
 router.get('/police/report/:id/track',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('POLICE'),
     policeController.getReportTracking
 );
 
 // Notifications
 router.get('/police/notification',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('POLICE'),
     validationMiddleware.validateQuery(policeValidation.listNotifications()),
     policeController.getNotifications
 );
 
 // Report updates
 router.post('/police/report/:id/status',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('POLICE'),
     validationMiddleware.validateBody(policeValidation.updateReportStatus()),
     policeController.updateReportStatus
 );
 
 router.post('/police/report/:id/track',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('POLICE'),
     validationMiddleware.validateBody(policeValidation.updateTracking()),
     policeController.updateTracking
 );

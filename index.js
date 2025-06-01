@@ -11,7 +11,7 @@ const routes = require('./src/app/routes');
 class Application {
   constructor() {
     this.app = express();
-    this.port = process.env.PORT || 5000;
+    this.port = process.env.PORT || 8080;
     this.baseUrl = process.env.BASE_URL || `http://localhost:${this.port}`;
     this.setupMiddleware();
     this.setupRoutes();

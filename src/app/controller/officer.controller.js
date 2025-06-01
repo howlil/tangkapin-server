@@ -46,6 +46,17 @@ class OfficerController {
         return Http.Response.success(res, result, 'Daftar petugas tersedia berhasil diambil');
     });
 
+    getCurrentIncidentMap = ErrorHandler.asyncHandler(async (req, res) => {
+        const result = await officerService.getCurrentIncidentMap();
+        return Http.Response.success(res, result, 'Data peta insiden berhasil diambil');
+    });
+
+    getRecentAlerts = ErrorHandler.asyncHandler(async (req, res) => {
+        const { limit = 10 } = req.query;
+        const result = await officerService.getRecentAlerts(parseInt(limit));
+        return Http.Response.success(res, result, 'Recent alerts berhasil diambil');
+    });
+
     getPoliceList = ErrorHandler.asyncHandler(async (req, res) => {
         const result = await officerService.getPoliceList(req.query);
         return Http.Response.success(res, result, 'Daftar polisi berhasil diambil');

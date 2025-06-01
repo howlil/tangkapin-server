@@ -19,7 +19,7 @@ async function seedOfficers(prisma, count = 5) {
       email: 'officer@example.com',
       phone: '+6281234567891',
       address: 'Jl. Kantor Polisi No. 1, Jakarta Pusat',
-      passwordHash: await require('../factories/utils.factory').hashPassword('password123'),
+      passwordHash: await require('../factories/utils.factory').hashPassword('@Test123'),
       latitude: -6.1751,
       longitude: 106.8650,
       vehicleType: 'SUV',
