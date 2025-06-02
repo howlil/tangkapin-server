@@ -39,6 +39,7 @@ enum ReportStatus {
 enum IncidentType {
   knife
   gun
+  guns
   other
 }
 

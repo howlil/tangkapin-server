@@ -485,6 +485,7 @@ class OfficerService {
                 incident_types: {
                     knife: crimeLocations.filter(c => c.incident_type === 'knife').length,
                     gun: crimeLocations.filter(c => c.incident_type === 'gun').length,
+                    guns: crimeLocations.filter(c => c.incident_type === 'guns').length,
                     other: crimeLocations.filter(c => c.incident_type === 'other').length
                 }
             };
@@ -507,7 +508,7 @@ class OfficerService {
                         in: ['new', 'assigned', 'in_progress']
                     },
                     incidentType: {
-                        in: ['knife', 'gun']
+                        in: ['knife','guns', 'gun']
                     }
                 },
                 orderBy: { createdAt: 'desc' },
@@ -633,6 +634,9 @@ class OfficerService {
 
     getPriority(incidentType, status) {
         if (incidentType === 'gun') {
+            return { level: 'critical', label: 'Emergency' };
+        }
+        if (incidentType === 'guns') {
             return { level: 'critical', label: 'Emergency' };
         }
 

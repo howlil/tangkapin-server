@@ -9,7 +9,7 @@
     "start:all": "node start.js",
     "dev": "nodemon src/index.js",
     "dev:all": "concurrently  \"cd ml && env\\Scripts\\python run.py\"  \"nodemon src/index.js\"",
-    "db:seed": "node prisma/seed.js",
+    "db:seed": "node prisma/index.js",
     "db:reset": "prisma migrate reset --force"
   },
   "keywords": [

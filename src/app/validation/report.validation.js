@@ -54,7 +54,7 @@ class ReportValidation {
                     'any.required': 'Lokasi wajib diisi'
                 }),
             incident_type: Joi.string()
-                .valid('knife', 'gun')
+                .valid('knife','guns','gun')
                 .required()
                 .messages({
                     'any.required': 'Tipe insiden wajib diisi',

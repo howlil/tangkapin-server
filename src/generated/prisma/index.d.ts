@@ -110,6 +110,7 @@ export type ReportStatus = (typeof ReportStatus)[keyof typeof ReportStatus]
 export const IncidentType: {
   knife: 'knife',
   gun: 'gun',
+  guns: 'guns',
   other: 'other'
 };
 

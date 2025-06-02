@@ -291,6 +291,7 @@ exports.ReportStatus = exports.$Enums.ReportStatus = {
 exports.IncidentType = exports.$Enums.IncidentType = {
   knife: 'knife',
   gun: 'gun',
+  guns: 'guns',
   other: 'other'
 };
 

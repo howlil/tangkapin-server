@@ -9,5 +9,6 @@ opencv-python
 numpy
 requests
 onnx
+supabase
 onnxruntime
 python-dotenv

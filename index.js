@@ -11,12 +11,14 @@ const routes = require('./src/app/routes');
 class Application {
   constructor() {
     this.app = express();
-    this.port = process.env.PORT || 8080;
+    this.port =  8080;
     this.baseUrl = process.env.BASE_URL || `http://localhost:${this.port}`;
     this.setupMiddleware();
     this.setupRoutes();
     this.setupErrorHandling();
     this.app.set('trust proxy', 1);
+    this.app.use(express.json({ limit: '10mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   }
 
   setupMiddleware() {

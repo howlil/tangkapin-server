@@ -11,41 +11,35 @@ class DetectionValidation {
                     'any.required': 'IP CCTV wajib diisi',
                     'string.ip': 'Format IP tidak valid'
                 }),
+            evidence_image: Joi.string()
+                .required()
+                .messages({
+                    'any.required': 'Gambar evidence wajib diisi',
+                    'string.base': 'Gambar evidence harus berupa string'
+                }),
+            weapon_type: Joi.string()
+                .valid('knife', 'gun', 'guns', 'pistol')
+                .required()
+                .messages({
+                    'any.required': 'Tipe senjata wajib diisi',
+                    'any.only': 'Tipe senjata harus knife, gun, guns, atau pistol'
+                }),
             timestamp: Joi.date()
                 .iso()
                 .optional()
                 .messages({
-                    'date.base': 'Format timestamp tidak valid'
+                    'date.base': 'Format timestamp tidak valid',
+                    'date.format': 'Timestamp harus dalam format ISO'
                 }),
-            report: Joi.object({
-                title: Joi.string()
-                    .required()
-                    .messages({
-                        'any.required': 'Judul laporan wajib diisi'
-                    }),
-                description: Joi.string()
-                    .required()
-                    .messages({
-                        'any.required': 'Deskripsi laporan wajib diisi'
-                    }),
-                location: Joi.string()
-                    .required()
-                    .messages({
-                        'any.required': 'Lokasi wajib diisi'
-                    }),
-                incident_type: Joi.string()
-                    .valid('knife', 'gun')
-                    .required()
-                    .messages({
-                        'any.required': 'Tipe insiden wajib diisi',
-                        'any.only': 'Tipe insiden harus knife atau gun'
-                    }),
-                report_image: Joi.string()
-                    .required()
-                    .messages({
-                        'any.required': 'Gambar laporan wajib diisi'
-                    })
-            }).required()
+            confidence: Joi.number()
+                .min(0)
+                .max(1)
+                .optional()
+                .messages({
+                    'number.base': 'Confidence harus berupa angka',
+                    'number.min': 'Confidence minimal 0',
+                    'number.max': 'Confidence maksimal 1'
+                })
         });
     }
 }
