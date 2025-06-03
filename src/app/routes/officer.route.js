@@ -75,4 +75,10 @@ router.get('/v1/officer/police',
     officerController.getPoliceList
 );
 
+router.get('/v1/officer/report/:reportId',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('OFFICER'),
+    officerController.getReportDetail
+);
+
 module.exports = router;

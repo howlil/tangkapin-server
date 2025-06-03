@@ -84,10 +84,10 @@ class OfficerValidation {
 
     static assignOfficer() {
         return ValidatorFactory.create({
-            officer_id: Joi.string()
+            police_id: Joi.string()
                 .required()
                 .messages({
-                    'any.required': 'ID petugas wajib diisi'
+                    'any.required': 'ID polisi wajib diisi'
                 })
         });
     }

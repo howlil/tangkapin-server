@@ -76,10 +76,11 @@ class CCTVValidation {
                     'number.max': 'Limit maksimal 100'
                 }),
             status: Joi.string()
-                .valid('ACTIVE', 'INACTIVE', 'MAINTENANCE')
+                .valid('online', 'offline', 'inactive', 'maintenance')
+                .insensitive()
                 .optional()
                 .messages({
-                    'any.only': 'Status tidak valid'
+                    'any.only': 'Status tidak valid. Status yang tersedia: online, offline, inactive, maintenance'
                 }),
             search: Joi.string()
                 .optional()

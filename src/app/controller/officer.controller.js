@@ -35,10 +35,10 @@ class OfficerController {
     assignOfficer = ErrorHandler.asyncHandler(async (req, res) => {
         const result = await officerService.assignOfficerToReport(
             req.params.report_id,
-            req.body.officer_id,
+            req.body.police_id,
             req.user.id
         );
-        return Http.Response.created(res, result, 'Petugas berhasil ditugaskan');
+        return Http.Response.created(res, result, 'Polisi berhasil ditugaskan');
     });
 
     getAvailableOfficers = ErrorHandler.asyncHandler(async (req, res) => {
@@ -61,6 +61,16 @@ class OfficerController {
         const result = await officerService.getPoliceList(req.query);
         return Http.Response.success(res, result, 'Daftar polisi berhasil diambil');
     });
+
+    getReportDetail = ErrorHandler.asyncHandler(async (req, res) => {
+        const { reportId } = req.params;
+
+        if (!reportId) {
+            throw new BadRequestError('Report ID diperlukan');
+        }
+        const result = await officerService.getReportDetail(reportId);
+        return Http.Response.success(res, result, 'Detail laporan berhasil diambil');
+    })
 }
 
 module.exports = new OfficerController();

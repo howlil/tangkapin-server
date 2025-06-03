@@ -8,13 +8,13 @@ const router = Router();
 
 
 router.get('/v1/notification',
-authMiddleware.authenticate,
+    authMiddleware.authenticate,
     validationMiddleware.validateQuery(notificationValidation.list()),
     notificationController.list
 );
 
 router.patch('/v1/notification/:id/read',
-    authMiddleware.authenticate,        
+    authMiddleware.authenticate,
     notificationController.markAsRead
 );
 

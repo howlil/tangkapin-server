@@ -25,8 +25,14 @@ class ReportValidation {
                     'number.max': 'Limit maksimal 100'
                 }),
             status: Joi.string()
-                .valid('NEW', 'ASSIGNED', 'IN_PROGRESS', 'VERIFIED', 'COMPLETED')
+                .valid('NEW', 'new', 'ASSIGNED', 'assigned', 'IN_PROGRESS', 'in_progress', 'VERIFIED', 'verified', 'COMPLETED', 'completed')
                 .optional()
+                .custom((value, helpers) => {
+                    if (value) {
+                        return value.toUpperCase();
+                    }
+                    return value;
+                })
                 .messages({
                     'any.only': 'Status tidak valid'
                 }),
@@ -54,7 +60,7 @@ class ReportValidation {
                     'any.required': 'Lokasi wajib diisi'
                 }),
             incident_type: Joi.string()
-                .valid('knife','guns','gun')
+                .valid('knife', 'guns', 'gun')
                 .required()
                 .messages({
                     'any.required': 'Tipe insiden wajib diisi',

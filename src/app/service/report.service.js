@@ -5,7 +5,7 @@ const { handlePrismaError } = require('../../libs/http/error.handler.http');
 class ReportService {
     async listReports(ownerId, query) {
         const { page = 1, limit = 10, status, search } = query;
-        const skip = (page - 1) * limit;
+        const skip = (parseInt(page) - 1) * parseInt(limit);
 
         try {
             const where = {
@@ -25,7 +25,7 @@ class ReportService {
                 prisma.report.findMany({
                     where,
                     skip,
-                    take: limit,
+                    take: parseInt(limit),
                     orderBy: { createdAt: 'desc' },
                     include: {
                         cctv: {
@@ -45,20 +45,20 @@ class ReportService {
                 status: report.status,
                 location: report.location,
                 created_at: report.createdAt,
-                report_image: report.report_image,
-                incident_type: report.incident_type,
-                cctv_name: report.cctv.name,
-                cctv_location: report.cctv.location,
-                is_assigned: !!report.officerId
+                report_image: report.reportImage,
+                incident_type: report.incidentType,
+                cctv_name: report.cctv?.name,
+                cctv_location: report.cctv?.location,
+                is_assigned: report.isAssigned
             }));
 
             return {
                 data: formattedReports,
                 pagination: {
                     total,
-                    page,
-                    limit,
-                    total_pages: Math.ceil(total / limit)
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total_pages: Math.ceil(total / parseInt(limit))
                 }
             };
         } catch (error) {

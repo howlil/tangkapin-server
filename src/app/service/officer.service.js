@@ -255,9 +255,28 @@ class OfficerService {
 
     async assignOfficerToReport(reportId, policeId, assignedByOfficerId) {
         try {
-            const [report, police] = await Promise.all([
-                prisma.report.findUnique({ where: { id: reportId } }),
-                prisma.police.findUnique({ where: { id: policeId } }) // Changed from officer to police
+            const [report, police, officer] = await Promise.all([
+                prisma.report.findUnique({
+                    where: { id: reportId },
+                    include: {
+                        assignments: {
+                            where: { reportId },
+                            select: { id: true }
+                        }
+                    }
+                }),
+                prisma.police.findUnique({
+                    where: { id: policeId },
+                    select: {
+                        id: true,
+                        name: true,
+                        status: true
+                    }
+                }),
+                prisma.officer.findUnique({
+                    where: { id: assignedByOfficerId },
+                    select: { id: true, name: true }
+                })
             ]);
 
             if (!report) {
@@ -265,25 +284,33 @@ class OfficerService {
             }
 
             if (!police) {
-                throw new NotFoundError('Police tidak ditemukan');
+                throw new NotFoundError('Polisi tidak ditemukan');
             }
 
-            if (report.isAssigned) {
-                throw new ConflictError('Laporan sudah ditugaskan');
+            if (!officer) {
+                throw new NotFoundError('Petugas tidak ditemukan');
+            }
+
+            if (report.assignments.length > 0) {
+                throw new ConflictError('Laporan sudah ditugaskan ke polisi lain');
+            }
+
+            if (police.status !== 'available') {
+                throw new BadRequestError('Polisi sedang tidak tersedia');
             }
 
             const result = await prisma.$transaction(async (tx) => {
-                // Create assignment
+                // Create assignment with officer as the assigned officer
                 const assignment = await tx.assignment.create({
                     data: {
                         reportId,
-                        officerId: policeId, // This maps to police ID based on schema
-                        assignedBy: assignedByOfficerId,
+                        officerId: assignedByOfficerId, // This should be the officer's ID
+                        assignedBy: policeId, // This is the police ID who is assigned
                         assignedAt: new Date()
                     }
                 });
 
-                // Update report
+                // Update report status
                 await tx.report.update({
                     where: { id: reportId },
                     data: {
@@ -304,8 +331,8 @@ class OfficerService {
                     data: [
                         {
                             ownerId: report.ownerId,
-                            title: 'Petugas Ditugaskan',
-                            message: `Petugas ${police.name} ditugaskan untuk menangani laporan Anda`,
+                            title: 'Polisi Ditugaskan',
+                            message: `Polisi ${police.name} ditugaskan untuk menangani laporan Anda`,
                             type: 'assignment',
                             status: 'unread',
                             reportId,
@@ -325,6 +352,18 @@ class OfficerService {
                     ]
                 });
 
+                // Create audit log
+                await tx.auditLog.create({
+                    data: {
+                        entity: 'Report',
+                        entityId: reportId,
+                        action: 'ASSIGN',
+                        actorOfficerId: assignedByOfficerId,
+                        description: `Laporan ditugaskan ke polisi ${police.name} oleh petugas ${officer.name}`,
+                        createdAt: new Date()
+                    }
+                });
+
                 return assignment;
             });
 
@@ -332,6 +371,7 @@ class OfficerService {
                 id: result.id,
                 report_id: result.reportId,
                 officer_id: result.officerId,
+                police_id: result.assignedBy,
                 assigned_at: result.assignedAt
             };
         } catch (error) {
@@ -508,7 +548,7 @@ class OfficerService {
                         in: ['new', 'assigned', 'in_progress']
                     },
                     incidentType: {
-                        in: ['knife','guns', 'gun']
+                        in: ['knife', 'guns', 'gun']
                     }
                 },
                 orderBy: { createdAt: 'desc' },
@@ -728,6 +768,302 @@ class OfficerService {
         } catch (error) {
             throw handlePrismaError(error);
         }
+    }
+
+    async getReportDetail(reportId) {
+        try {
+            const report = await prisma.report.findUnique({
+                where: { id: reportId },
+                include: {
+                    // Owner information
+                    owner: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            phone: true,
+                            address: true,
+                            latitude: true,
+                            longitude: true
+                        }
+                    },
+                    // CCTV information if available
+                    cctv: {
+                        select: {
+                            id: true,
+                            name: true,
+                            location: true,
+                            description: true,
+                            cameraType: true,
+                            status: true,
+                            streamUrl: true
+                        }
+                    },
+                    // Evidence files
+                    evidences: {
+                        select: {
+                            id: true,
+                            fileUrl: true,
+                            type: true,
+                            createdAt: true
+                        },
+                        orderBy: {
+                            createdAt: 'desc'
+                        }
+                    },
+                    // Assignment information
+                    assignments: {
+                        include: {
+                            officer: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    phone: true,
+                                    status: true,
+                                    vehicleType: true,
+                                    licensePlate: true,
+                                    latitude: true,
+                                    longitude: true
+                                }
+                            },
+                            assignedByPolice: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    officeName: true
+                                }
+                            },
+                            // Latest tracking information
+                            trackings: {
+                                orderBy: {
+                                    createdAt: 'desc'
+                                },
+                                take: 1,
+                                select: {
+                                    id: true,
+                                    latitude: true,
+                                    longitude: true,
+                                    timestamp: true,
+                                    distance: true,
+                                    estimatedTime: true,
+                                    status: true,
+                                    description: true,
+                                    createdAt: true,
+                                    updatedAt: true
+                                }
+                            }
+                        },
+                        orderBy: {
+                            assignedAt: 'desc'
+                        },
+                        take: 1
+                    }
+                }
+            });
+
+            if (!report) {
+                throw new NotFoundError('Laporan tidak ditemukan');
+            }
+
+            // Get related notifications count
+            const notificationCount = await prisma.notification.count({
+                where: {
+                    reportId: reportId,
+                    status: 'unread'
+                }
+            });
+
+            // Get audit logs for this report
+            const auditLogs = await prisma.auditLog.findMany({
+                where: {
+                    entity: 'Report',
+                    entityId: reportId
+                },
+                include: {
+                    actorOwner: {
+                        select: {
+                            name: true,
+                            email: true
+                        }
+                    },
+                    actorOfficer: {
+                        select: {
+                            name: true,
+                            email: true
+                        }
+                    },
+                    actorPolice: {
+                        select: {
+                            name: true,
+                            email: true
+                        }
+                    }
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                },
+                take: 10 // Last 10 activities
+            });
+
+            // Format the response
+            const assignment = report.assignments[0];
+            const latestTracking = assignment?.trackings[0];
+
+            const formattedResponse = {
+                // Basic report info
+                id: report.id,
+                title: report.title,
+                description: report.description,
+                status: report.status,
+                location: report.location,
+                incident_type: report.incidentType,
+                report_image: report.reportImage,
+                is_assigned: report.isAssigned,
+                created_at: report.createdAt,
+                updated_at: report.updatedAt,
+
+                // Source information
+                source: report.cctvId ? 'cctv' : 'manual',
+
+                // Owner details
+                owner: report.owner ? {
+                    id: report.owner.id,
+                    name: report.owner.name,
+                    email: report.owner.email,
+                    phone: report.owner.phone,
+                    address: report.owner.address,
+                    coordinates: {
+                        latitude: report.owner.latitude,
+                        longitude: report.owner.longitude
+                    }
+                } : null,
+
+                // CCTV details (if available)
+                cctv: report.cctv ? {
+                    id: report.cctv.id,
+                    name: report.cctv.name,
+                    location: report.cctv.location,
+                    description: report.cctv.description,
+                    camera_type: report.cctv.cameraType,
+                    status: report.cctv.status,
+                    stream_url: report.cctv.streamUrl
+                } : null,
+
+                // Evidence files
+                evidences: report.evidences.map(evidence => ({
+                    id: evidence.id,
+                    file_url: evidence.fileUrl,
+                    type: evidence.type,
+                    created_at: evidence.createdAt
+                })),
+
+                // Assignment details
+                assignment: assignment ? {
+                    id: assignment.id,
+                    assigned_at: assignment.assignedAt,
+                    assigned_by: assignment.assignedByPolice ? {
+                        id: assignment.assignedByPolice.id,
+                        name: assignment.assignedByPolice.name,
+                        office: assignment.assignedByPolice.officeName
+                    } : null,
+                    officer: {
+                        id: assignment.officer.id,
+                        name: assignment.officer.name,
+                        phone: assignment.officer.phone,
+                        status: assignment.officer.status,
+                        vehicle_type: assignment.officer.vehicleType,
+                        license_plate: assignment.officer.licensePlate,
+                        current_location: {
+                            latitude: latestTracking?.latitude || assignment.officer.latitude,
+                            longitude: latestTracking?.longitude || assignment.officer.longitude
+                        }
+                    },
+                    tracking: latestTracking ? {
+                        id: latestTracking.id,
+                        status: latestTracking.status,
+                        distance: latestTracking.distance,
+                        estimated_time: latestTracking.estimatedTime,
+                        description: latestTracking.description,
+                        last_update: latestTracking.updatedAt || latestTracking.createdAt
+                    } : null
+                } : null,
+
+                // Activity logs
+                activity_logs: auditLogs.map(log => ({
+                    id: log.id,
+                    action: log.action,
+                    description: log.description,
+                    actor: this.getActor(log),
+                    created_at: log.createdAt
+                })),
+
+                // Additional metadata
+                metadata: {
+                    unread_notifications: notificationCount,
+                    has_evidence: report.evidences.length > 0,
+                    response_time: this.calculateResponseTime(report.createdAt, assignment?.assignedAt),
+                    resolution_time: this.calculateResolutionTime(report.createdAt, report.status, report.updatedAt)
+                }
+            };
+
+            return formattedResponse;
+        } catch (error) {
+            throw handlePrismaError(error);
+        }
+    }
+
+    // Helper method to get actor information
+    getActor(auditLog) {
+        if (auditLog.actorOwner) {
+            return {
+                type: 'owner',
+                name: auditLog.actorOwner.name,
+                email: auditLog.actorOwner.email
+            };
+        }
+        if (auditLog.actorOfficer) {
+            return {
+                type: 'officer',
+                name: auditLog.actorOfficer.name,
+                email: auditLog.actorOfficer.email
+            };
+        }
+        if (auditLog.actorPolice) {
+            return {
+                type: 'police',
+                name: auditLog.actorPolice.name,
+                email: auditLog.actorPolice.email
+            };
+        }
+        return null;
+    }
+
+    // Helper method to calculate response time
+    calculateResponseTime(createdAt, assignedAt) {
+        if (!createdAt || !assignedAt) return null;
+
+        const diffMs = new Date(assignedAt) - new Date(createdAt);
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+
+        if (diffMins < 60) return `${diffMins} minutes`;
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `${diffHours} hours`;
+        const diffDays = Math.floor(diffHours / 24);
+        return `${diffDays} days`;
+    }
+
+    // Helper method to calculate resolution time
+    calculateResolutionTime(createdAt, status, updatedAt) {
+        if (status !== 'completed' || !createdAt || !updatedAt) return null;
+
+        const diffMs = new Date(updatedAt) - new Date(createdAt);
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+
+        if (diffMins < 60) return `${diffMins} minutes`;
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `${diffHours} hours`;
+        const diffDays = Math.floor(diffHours / 24);
+        return `${diffDays} days`;
     }
 }
 

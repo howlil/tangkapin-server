@@ -62,7 +62,6 @@ class DetectionService {
                 location: report.location,
                 timestamp: report.createdAt,
                 evidenceUrl: evidence.fileUrl,
-                priority: report.incidentType === 'gun' ? 'critical' : 'high'
             });
 
             // Notify officer (police station) for verification
@@ -73,7 +72,6 @@ class DetectionService {
                     location: report.location,
                     cctvName: cctv.name,
                     evidenceUrl: evidence.fileUrl,
-                    priority: report.incidentType === 'gun' ? 'critical' : 'high',
                     timestamp: report.createdAt
                 });
             }

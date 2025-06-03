@@ -25,6 +25,7 @@ enum CCTVStatus {
   online
   offline
   inactive
+  maintenance
 }
 
 enum ReportStatus {

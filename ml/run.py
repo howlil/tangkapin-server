@@ -120,10 +120,10 @@ from supabase import create_client, Client
 import requests
 
 # === SETUP ENV / KONFIGURASI ===
-CAMERA_URL = 'http://192.168.0.16:8080/video'            # Ganti dengan alamat IP webcam HP kamu
+CAMERA_URL = 'http://192.168.0.3:8080/video'            # Ganti dengan alamat IP webcam HP kamu
 MODEL_PATH = 'model/normal/best.pt'                      # Path model YOLOv8
 EVIDENCE_DIR = 'evidence'
-CONFIDENCE_THRESHOLD = 0.78
+CONFIDENCE_THRESHOLD = 0.7
 SKIP_FRAME = 3
 INFER_SIZE = (640, 360)
 

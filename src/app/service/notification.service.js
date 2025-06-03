@@ -4,7 +4,7 @@ const { handlePrismaError } = require('../../libs/http/error.handler.http');
 class NotificationService {
     async listNotifications(ownerId, query) {
         const { page = 1, limit = 10, status, search } = query;
-        const skip = (page - 1) * limit;
+        const skip = (parseInt(page) - 1) * parseInt(limit);
 
         try {
             const where = {
@@ -19,10 +19,10 @@ class NotificationService {
             };
 
             const [notifications, total] = await Promise.all([
-                prisma.notification.findMany({
+                prisma.Notification.findMany({
                     where,
                     skip,
-                    take: limit,
+                    take: parseInt(limit),
                     orderBy: { createdAt: 'desc' },
                     select: {
                         id: true,
@@ -36,19 +36,20 @@ class NotificationService {
                         isRead: true
                     }
                 }),
-                prisma.notification.count({ where })
+                prisma.Notification.count({ where })
             ]);
 
             return {
                 data: notifications,
                 pagination: {
                     total,
-                    page,
-                    limit,
-                    total_pages: Math.ceil(total / limit)
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total_pages: Math.ceil(total / parseInt(limit))
                 }
             };
         } catch (error) {
+            console.error('Error in listNotifications:', error);
             throw handlePrismaError(error);
         }
     }
